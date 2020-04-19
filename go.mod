@@ -1,4 +1,4 @@
-module sheetManager
+module github.com/cameronnorman/sheetManager
 
 go 1.13
 
