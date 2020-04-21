@@ -16,17 +16,23 @@ type SheetManager struct {
 	secrets       []byte
 	client        *http.Client
 	spreadsheetID string
-	sheet         *spreadsheet.Sheet
+	service       *spreadsheet.Service
+	googleSheet   *spreadsheet.Spreadsheet
 }
 
-func (s *SheetManager) LoadSheet() []map[string]string {
+func (s *SheetManager) LoadSheet(sheetIndex uint) []map[string]string {
+	sheet, err := s.googleSheet.SheetByIndex(sheetIndex)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	keys := make([]string, 0)
-	for _, col := range s.sheet.Rows[0] {
+	for _, col := range sheet.Rows[0] {
 		keys = append(keys, col.Value)
 	}
 
 	rows := []map[string]string{}
-	for k, row := range s.sheet.Rows {
+	for k, row := range sheet.Rows {
 		if k != 0 {
 			rowDetail := make(map[string]string)
 			for i, cell := range row {
@@ -39,14 +45,42 @@ func (s *SheetManager) LoadSheet() []map[string]string {
 	return rows
 }
 
-func (s *SheetManager) UpdateValue(column int, row int, newValue string) error {
-	s.sheet.Update(row, column, newValue)
+func (s *SheetManager) SheetByName(name string) uint {
+	sheet, err := s.googleSheet.SheetByTitle(name)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return sheet.Properties.Index
+}
+
+func (s *SheetManager) CreateSheet(name string) uint {
+	err := s.service.AddSheet(s.googleSheet, spreadsheet.SheetProperties{Title: name})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return s.SheetByName(name)
+}
+
+func (s *SheetManager) UpdateValue(sheetIndex uint, column int, row int, newValue string) error {
+	sheet, err := s.googleSheet.SheetByIndex(sheetIndex)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	sheet.Update(row, column, newValue)
 
 	return nil
 }
 
-func (s *SheetManager) Sync() error {
-	err := s.sheet.Synchronize()
+func (s *SheetManager) Sync(sheetIndex uint) error {
+	sheet, err := s.googleSheet.SheetByIndex(sheetIndex)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = sheet.Synchronize()
 	if err != nil {
 		return err
 	}
@@ -54,7 +88,7 @@ func (s *SheetManager) Sync() error {
 	return nil
 }
 
-func New(secretsFilePath string, spreadsheetID string, sheetIndex uint) *SheetManager {
+func New(secretsFilePath string, spreadsheetID string) *SheetManager {
 	secrets, err := ioutil.ReadFile(secretsFilePath)
 	if err != nil {
 		log.Fatal(err)
@@ -68,12 +102,7 @@ func New(secretsFilePath string, spreadsheetID string, sheetIndex uint) *SheetMa
 	client := conf.Client(oauth2.NoContext)
 	service := spreadsheet.NewServiceWithClient(client)
 
-	fetchSheetService, err := service.FetchSpreadsheet(spreadsheetID)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fetchedSheet, err := fetchSheetService.SheetByIndex(sheetIndex)
+	googleSheet, err := service.FetchSpreadsheet(spreadsheetID)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -82,7 +111,8 @@ func New(secretsFilePath string, spreadsheetID string, sheetIndex uint) *SheetMa
 		secrets:       secrets,
 		config:        conf,
 		spreadsheetID: spreadsheetID,
-		sheet:         fetchedSheet,
+		service:       service,
+		googleSheet:   &googleSheet,
 	}
 
 	return s
