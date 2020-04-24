@@ -76,6 +76,9 @@ func (s *SheetManager) UpdateValue(sheetIndex uint, column int, row int, newValu
 
 func (s *SheetManager) DeleteRow(sheetIndex uint, rowIndex int) error {
 	sheet, err := s.googleSheet.SheetByIndex(sheetIndex)
+	if err != nil {
+		log.Fatal(err)
+	}
 	sheet.DeleteRows(rowIndex, 1)
 	return nil
 }
