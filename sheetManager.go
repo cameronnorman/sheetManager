@@ -79,7 +79,7 @@ func (s *SheetManager) DeleteRow(sheetIndex uint, rowIndex int) error {
 	if err != nil {
 		log.Fatal(err)
 	}
-	sheet.DeleteRows(rowIndex, (rowIndex + 1))
+	sheet.DeleteRows(rowIndex, rowIndex)
 	return nil
 }
 
