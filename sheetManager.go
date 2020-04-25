@@ -51,7 +51,7 @@ func (s *SheetManager) SheetByName(name string) (uint, error) {
 		return 0, err
 	}
 
-	return sheet.Properties.Index, error
+	return sheet.Properties.Index, nil
 }
 
 func (s *SheetManager) CreateSheet(name string) (uint, error) {
