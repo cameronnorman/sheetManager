@@ -20,10 +20,11 @@ type SheetManager struct {
 	googleSheet   *spreadsheet.Spreadsheet
 }
 
-func (s *SheetManager) LoadSheet(sheetIndex uint) []map[string]string {
+func (s *SheetManager) LoadSheet(sheetIndex uint) ([]map[string]string, error) {
+	rows := []map[string]string{}
 	sheet, err := s.googleSheet.SheetByIndex(sheetIndex)
 	if err != nil {
-		log.Fatal(err)
+		return rows, err
 	}
 
 	keys := make([]string, 0)
@@ -31,7 +32,6 @@ func (s *SheetManager) LoadSheet(sheetIndex uint) []map[string]string {
 		keys = append(keys, col.Value)
 	}
 
-	rows := []map[string]string{}
 	for k, row := range sheet.Rows {
 		if k != 0 {
 			rowDetail := make(map[string]string)
@@ -42,22 +42,22 @@ func (s *SheetManager) LoadSheet(sheetIndex uint) []map[string]string {
 		}
 	}
 
-	return rows
+	return rows, nil
 }
 
-func (s *SheetManager) SheetByName(name string) uint {
+func (s *SheetManager) SheetByName(name string) (uint, error) {
 	sheet, err := s.googleSheet.SheetByTitle(name)
 	if err != nil {
-		log.Fatal(err)
+		return 0, err
 	}
 
-	return sheet.Properties.Index
+	return sheet.Properties.Index, error
 }
 
-func (s *SheetManager) CreateSheet(name string) uint {
+func (s *SheetManager) CreateSheet(name string) (uint, error) {
 	err := s.service.AddSheet(s.googleSheet, spreadsheet.SheetProperties{Title: name})
 	if err != nil {
-		log.Fatal(err)
+		return 0, err
 	}
 
 	return s.SheetByName(name)
@@ -65,8 +65,9 @@ func (s *SheetManager) CreateSheet(name string) uint {
 
 func (s *SheetManager) UpdateValue(sheetIndex uint, column int, row int, newValue string) error {
 	sheet, err := s.googleSheet.SheetByIndex(sheetIndex)
+
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	sheet.Update(row, column, newValue)
@@ -77,8 +78,9 @@ func (s *SheetManager) UpdateValue(sheetIndex uint, column int, row int, newValu
 func (s *SheetManager) DeleteRow(sheetIndex uint, rowIndex int) error {
 	sheet, err := s.googleSheet.SheetByIndex(sheetIndex)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+
 	sheet.DeleteRows(rowIndex, (rowIndex + 1))
 	return nil
 }
@@ -86,7 +88,7 @@ func (s *SheetManager) DeleteRow(sheetIndex uint, rowIndex int) error {
 func (s *SheetManager) Sync(sheetIndex uint) error {
 	sheet, err := s.googleSheet.SheetByIndex(sheetIndex)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	err = sheet.Synchronize()
