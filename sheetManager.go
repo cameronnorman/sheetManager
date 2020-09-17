@@ -128,3 +128,33 @@ func New(secretsFilePath string, spreadsheetID string) *SheetManager {
 
 	return s
 }
+
+func NewWithSecrets(secrets []byte, spreadsheetID string) *SheetManager {
+	secrets, err := ioutil.ReadFile(secretsFilePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	conf, err := google.JWTConfigFromJSON(secrets, spreadsheet.Scope)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	client := conf.Client(oauth2.NoContext)
+	service := spreadsheet.NewServiceWithClient(client)
+
+	googleSheet, err := service.FetchSpreadsheet(spreadsheetID)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	s := &SheetManager{
+		secrets:       secrets,
+		config:        conf,
+		spreadsheetID: spreadsheetID,
+		service:       service,
+		googleSheet:   &googleSheet,
+	}
+
+	return s
+}
