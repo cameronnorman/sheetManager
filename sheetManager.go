@@ -130,11 +130,6 @@ func New(secretsFilePath string, spreadsheetID string) *SheetManager {
 }
 
 func NewWithSecrets(secrets []byte, spreadsheetID string) *SheetManager {
-	secrets, err := ioutil.ReadFile(secretsFilePath)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	conf, err := google.JWTConfigFromJSON(secrets, spreadsheet.Scope)
 	if err != nil {
 		log.Fatal(err)
